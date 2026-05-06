@@ -112,7 +112,8 @@ def mitm_babai_probability(r, stddev, fast=False):
         num_exact = min(fast, len(r))
         xs = [RR((.5 * ri)**.5) / stddev for ri in r[-num_exact:]]
         ps = [RR(1.0 - c / x if x > 100 else erf(x) - c * (1 - exp(-x**2)) / x) for x in xs]
-        return ps[0]**(len(r) - num_exact) * prod(ps)
+        # return ps[0]**(len(r) - num_exact) * prod(ps)
+        return prod(ps)
 
     # Note: `r` contains *square norms*, so convert to non-square norms.
     # Follow the proof of Lemma 4.2 [WAHC:SonChe19]_, because that one uses standard deviation.

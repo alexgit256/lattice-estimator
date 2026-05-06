@@ -255,6 +255,7 @@ class PrimalMeet:
         beta: int,
         zeta: int,
         succ_prob: float = 0.99,
+        babai_dim=None,
         red_shape_model=red_shape_model_default,
         red_cost_model=red_cost_model_default,
     ):
@@ -283,16 +284,19 @@ class PrimalMeet:
 
         log_last_GS_norm = exp((log(params.q)*(d-n) + log(xi)*n) / d - (d-1) * log(delta))
         # if sqrt(r[-1]) < 10 * sigma:
-        if log_last_GS_norm < 10 * sigma:
+        if log_last_GS_norm < 2.5 * sigma:
             # Lattice reduction should be sufficiently strong such that p_adm is of value >0.1 or so (e.g. 0.5).
             return Cost(rop=oo)
+        
+        if babai_dim==None:
+            babai_dim=d
         simulator = simulator_normalize(red_shape_model)
         r = simulator(d, n, params.q, beta, xi=xi, tau=None, dual=True)
 
         cost_bkz = RR(costf(red_cost_model, beta, d)["rop"])
 
         prob_np = RR(babai_gaussian(r, sigma))
-        prob_adm = RR(mitm_babai_probability(r, sigma, fast=1000))
+        prob_adm = RR(mitm_babai_probability(r, sigma, fast=babai_dim))
 
         # 2. Find the best hamming weight of the guess.
         best_cost = Cost(rop=oo)
@@ -302,7 +306,7 @@ class PrimalMeet:
         while hw <= min(h, zeta):
             search_space = params.Xs.split_balanced(zeta, hw)[0]
             prob_hw = params.Xs.split_probability(zeta, hw)
-            if prob_hw < 2**-20:
+            if prob_hw < 2**-14:        # if prob_hw < 2**-20:
                 # Very unlikely in this attack that the secret splits in this way.
                 # The best attack has very small T/p (T = runtime, p = success probability)
                 # The runtime is quite large so it also requires a somewhat large `p`.
@@ -347,6 +351,7 @@ class PrimalMeet:
         zeta: int,
         params: LWEParameters,
         succ_prob: float = 0.99,
+        babai_dim=None,
         red_shape_model=red_shape_model_default,
         red_cost_model=red_cost_model_default,
         log_level=5,
@@ -372,6 +377,7 @@ class PrimalMeet:
             params,
             zeta=zeta,
             succ_prob=succ_prob,
+            babai_dim=babai_dim,
             red_shape_model=red_shape_model,
             red_cost_model=red_cost_model,
             **kwds,
@@ -404,6 +410,7 @@ class PrimalMeet:
         params: LWEParameters,
         zeta: int = None,
         succ_prob: float = 0.99,
+        babai_dim=None,
         red_shape_model=red_shape_model_default,
         red_cost_model=red_cost_model_default,
         log_level=1,
@@ -419,6 +426,7 @@ class PrimalMeet:
             cls.cost_zeta,
             params=params,
             succ_prob=succ_prob,
+            babai_dim=babai_dim,
             red_shape_model=red_shape_model,
             red_cost_model=red_cost_model,
             log_level=log_level + 1,
