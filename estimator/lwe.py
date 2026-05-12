@@ -12,7 +12,7 @@ from .lwe_guess import exhaustive_search, mitm, distinguish, guess_composition  
 from .lwe_dual import dual
 from .lwe_dual import matzov as dual_hybrid
 from .lwe_comb import odlyzko, meet_rep0, meet_rep1
-from .lwe_primal_meet import primal_meet
+from .lwe_primal_meet import primal_meet, primal_meet_projected#, primal_meet_projected_rot
 from .nd import SparseTernary
 from .gb import arora_gb  # noqa
 from .lwe_parameters import LWEParameters as Parameters  # noqa
@@ -176,6 +176,18 @@ class Estimate:
                 red_cost_model=red_cost_model,
                 red_shape_model=red_shape_model
             )
+
+            algorithms["primal_meet_projected"] = partial(
+                primal_meet_projected,
+                red_cost_model=red_cost_model,
+                red_shape_model=red_shape_model,
+            )
+
+            # algorithms["primal_meet_projected_rot"] = partial(
+            #     primal_meet_projected,
+            #     red_cost_model=red_cost_model,
+            #     red_shape_model=red_shape_model,
+            # )
 
         # Dual Attacks
         algorithms["dual"] = partial(dual, red_cost_model=red_cost_model)

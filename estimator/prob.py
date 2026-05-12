@@ -112,7 +112,36 @@ def mitm_babai_probability(r, stddev, fast=False):
         num_exact = min(fast, len(r))
         xs = [RR((.5 * ri)**.5) / stddev for ri in r[-num_exact:]]
         ps = [RR(1.0 - c / x if x > 100 else erf(x) - c * (1 - exp(-x**2)) / x) for x in xs]
-        # return ps[0]**(len(r) - num_exact) * prod(ps)
+        return ps[0]**(len(r) - num_exact) * prod(ps)
+
+    # Note: `r` contains *square norms*, so convert to non-square norms.
+    # Follow the proof of Lemma 4.2 [WAHC:SonChe19]_, because that one uses standard deviation.
+    xs = [RR((.5 * ri)**.5) / stddev for ri in r]
+    p = prod(RR(erf(x) - c * (1 - exp(-x**2)) / x) for x in xs)
+    assert 0.0 <= p <= 1.0
+    return p
+
+def mitm_babai_probability_proj(r, stddev, fast=False):
+    """
+    Compute the "e-admissibility" probability associated to the MitM step, according to
+    [WAHC:SonChe19]_
+
+    :params r: the squared GSO lengths
+    :params stddev: the std.dev of the error distribution
+    :param fast: number of coordinates to compute exactly while underestimating security for the
+                 rest (the lower value the faster, but underestimates security).
+                 Set to false to compute the exact value.
+    :return: probability for the MitM process
+    """
+    # Using RDF.pi() to prevent memory leakage:
+    # see https://ask.sagemath.org/question/45863/memory-usage-strictly-increasing-on-sage-interactive-shell/
+    c = RR(1.0 / sqrt(RDF.pi()))
+
+    if fast:
+        # Compute p_adm for the last `num_exact` coordinates exactly, and approximate the others.
+        num_exact = min(fast, len(r))
+        xs = [RR((.5 * ri)**.5) / stddev for ri in r[-num_exact:]]
+        ps = [RR(1.0 - c / x if x > 100 else erf(x) - c * (1 - exp(-x**2)) / x) for x in xs]
         return prod(ps)
 
     # Note: `r` contains *square norms*, so convert to non-square norms.
@@ -281,3 +310,62 @@ def guessing_set_and_hit_probability(zeta: int, dist: NoiseDistribution, hw: int
         probability += prev_probability
 
     return search_space, probability
+
+@cached_function
+def guessing_set_and_hit_probability(zeta: int, dist: NoiseDistribution, hw: int):
+    """
+    Guessing set and corresponding hit probability for guessing ζ coordinates from a vector drawn from `dist`.
+    We guess all such subvectors up to Hamming weight `hw`, and compute the probability that at least one of
+    these guesses is correct. We return the raw guessing set size, i.e., no MitM speedup.
+
+    :param zeta: the length of the subvector we guess
+    :param dist: the distribution from which the entire vector is drawn
+    :param hw: the maximum Hamming weight of the subvectors we guess
+
+    :returns: a tuple (search_space, hit_probability) where `search_space` is the number of guesses, and
+    `hit_probability` is the probability that at least one of these guesses is correct.
+
+    """
+    if zeta > dist.n:
+        raise ValueError(f"Trying to guess {zeta} coordinates of a vector of length {dist.n}")
+
+    if zeta == 0:
+        # no guessing to do: we will do one call, and hit with probability 1
+        search_space = 1
+        hit_probability = 1.0
+        return search_space, hit_probability
+
+    else:
+        # we form the set of all vectors of weight hw when drawing from dist
+        # the total number of non-zero entries
+        h = dist.hamming_weight
+        # e.g. (-1, 1) -> two non-zero per entry
+        base = dist.bounds[1] - dist.bounds[0]
+        # our starting hw
+        min_hw = max(0, zeta - dist.n + h)
+        max_hw = min(zeta, h)
+
+        if hw < min_hw:
+            raise ValueError(f"hw={hw} < min feasible hw={min_hw}")
+        if hw > max_hw:
+            raise ValueError(f"hw={hw} > max feasible hw={max_hw}")
+
+        # calculate the number of elements of exactly hw and the probability this segment has weight exactly hw
+        if hw == 0:
+            search_space = binomial(zeta, hw)
+        elif base == oo:
+            search_space = oo
+        else:
+            search_space = binomial(zeta, hw) * base**hw
+
+        probability = RR(drop(dist.n, h, zeta, fail=hw))
+
+        if hw > min_hw:
+            # recurse using cached values for smaller hw
+            prev_search_space, prev_probability = guessing_set_and_hit_probability(
+                zeta, dist, hw - 1
+            )
+            search_space += prev_search_space
+            probability += prev_probability
+
+        return search_space, probability
