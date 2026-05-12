@@ -12,10 +12,10 @@ from .lwe_guess import exhaustive_search, mitm, distinguish, guess_composition  
 from .lwe_dual import dual
 from .lwe_dual import matzov as dual_hybrid
 from .lwe_comb import odlyzko, meet_rep0, meet_rep1
-from .lwe_primal_meet import primal_meet, primal_meet_projected#, primal_meet_projected_rot
+from .lwe_primal_meet import primal_meet, primal_meet_projected
 from .nd import SparseTernary
 from .gb import arora_gb  # noqa
-from .lwe_parameters import LWEParameters as Parameters  # noqa
+from .lwe_parameters import LWEParameters as Parameters, RingLWEParameters as RingParameters  # noqa
 from .conf import (
     red_cost_model as red_cost_model_default,
     red_shape_model as red_shape_model_default,
