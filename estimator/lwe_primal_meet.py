@@ -304,6 +304,7 @@ class PrimalMeet:
         if log_last_GS_norm < 10 * sigma:
             # Lattice reduction should be sufficiently strong such that p_adm is of value >0.1 or so (e.g. 0.5).
             return Cost(rop=oo)
+        
         simulator = simulator_normalize(red_shape_model)
         r = simulator(d, n, params.q, beta, xi=xi, tau=None, dual=True)
 
@@ -366,6 +367,7 @@ class PrimalMeet:
                 break
             best_cost = min(best_cost, cost)
             hw += 2
+
         return best_cost
 
     @classmethod
@@ -746,14 +748,14 @@ class PrimalMeetProjected:
 
         log_last_GS_norm = exp((log(params.q)*(d-n) + log(xi)*n) / d - (d-1) * log(delta))
         # if sqrt(r[-1]) < 10 * sigma:
-        if log_last_GS_norm < 2.5 * sigma:
+        if log_last_GS_norm < 10 * sigma:
             # Lattice reduction should be sufficiently strong such that p_adm is of value >0.1 or so (e.g. 0.5).
             return Cost(rop=oo)
         
         simulator = simulator_normalize(red_shape_model)
         r = simulator(d, n, params.q, beta, xi=xi, tau=None, dual=True)
 
-        cost_bkz = RR(costf(red_cost_model, beta, d)["rop"])
+        cost_bkz = RR(costf(red_cost_model, beta, d)["rop"])  
 
         # prob_np = RR(babai_gaussian(r, sigma)) #dependent on eta
 
